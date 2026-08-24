@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Empire Colle — Florida #2</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 30px 35px 35px;
+      border: 1px solid #2a2a2a;
+      box-shadow: 0 0 60px rgba(148, 0, 211, 0.15);
+      position: relative;
+    }
+    .burger-btn {
+      position: absolute;
+      top: 20px;
+      left: 25px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #222;
+      border: 1px solid #3a3a3a;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: 0.25s ease;
+      z-index: 10;
+    }
+    .burger-btn:hover { background: #333; border-color: #9b2d30; transform: scale(1.05); }
+    .burger-btn span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: #ccc;
+      border-radius: 2px;
+      transition: 0.3s;
+    }
+    .burger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+    .burger-btn.active span:nth-child(2) { opacity: 0; }
+    .burger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -320px;
+      width: 300px;
+      height: 100vh;
+      background: #141414;
+      border-right: 1px solid #2a2a2a;
+      padding: 80px 24px 30px;
+      transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+      overflow-y: auto;
+      box-shadow: 4px 0 40px rgba(0, 0, 0, 0.7);
+    }
+    .drawer.open { left: 0; }
+    .drawer .close-area {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .drawer .close-area:hover { color: #fff; }
+    .drawer .drawer-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #9b2d30;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 12px;
+    }
+    .drawer-btn {
+      display: block;
+      width: 100%;
+      padding: 12px 18px;
+      margin-bottom: 8px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #1e1e1e;
+      color: #aaa;
+      border: 1px solid #2a2a2a;
+      cursor: pointer;
+      text-align: left;
+      transition: 0.2s ease;
+    }
+    .drawer-btn:hover { background: #2a2a2a; color: #fff; border-color: #9b2d30; transform: translateX(4px); }
+    .drawer-btn.active {
+      background: #9b2d30;
+      color: #fff;
+      border-color: #9b2d30;
+      box-shadow: 0 0 20px rgba(155, 45, 48, 0.2);
+    }
+    .drawer-btn.active:hover { background: #b33a3d; }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 99;
+      opacity: 0;
+      visibility: hidden;
+      transition: 0.3s ease;
+    }
+    .overlay.visible { opacity: 1; visibility: visible; }
+    .top-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 10px 0 14px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      position: relative;
+    }
+    .main-logo {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 56px;
+      font-weight: 900;
+      color: #9b2d30;
+      text-shadow: 0 0 10px rgba(155, 45, 48, 0.6), 0 0 30px rgba(148, 0, 211, 0.3), 0 0 80px rgba(155, 45, 48, 0.2);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      transition: 0.3s;
+    }
+    .main-logo:hover {
+      text-shadow: 0 0 20px rgba(155, 45, 48, 0.8), 0 0 60px rgba(148, 0, 211, 0.4), 0 0 120px rgba(155, 45, 48, 0.3);
+      transform: scale(1.02);
+    }
+    .main-logo small {
+      font-size: 18px;
+      font-weight: 400;
+      color: #888;
+      text-shadow: none;
+      letter-spacing: 2px;
+    }
+    .section-heading {
+      font-size: 26px;
+      font-weight: 700;
+      color: #9b2d30;
+      margin: 16px 0 4px;
+      letter-spacing: 1px;
+    }
+    .section-heading small { font-weight: 400; font-size: 16px; color: #888; margin-left: 10px; }
+    .desc-block {
+      margin: 18px 0 28px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: #ccc;
+      border-left: 3px solid #9400d3;
+      background: #151515;
+      border-radius: 0 12px 12px 0;
+      padding: 14px 20px;
+    }
+    .desc-block strong { color: #fff; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 12px 0 16px;
+    }
+    .stat-item {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .stat-item:hover { border-color: #9400d3; background: #141414; transform: scale(1.02); }
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #9400d3;
+      letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-label { font-size: 13px; color: #888; margin-top: 4px; letter-spacing: 0.5px; }
+    .news-section {
+      display: none;
+      margin: 20px 0 10px;
+      padding: 20px 24px;
+      background: #111;
+      border-radius: 16px;
+      border: 1px solid #2a2a2a;
+      animation: fadeSlide 0.35s ease;
+    }
+    .news-section.visible { display: block; }
+    .news-section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #9400d3;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 12px;
+    }
+    .news-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 20px 24px;
+      border-left: 4px solid #ffd700;
+      transition: 0.2s;
+      margin-bottom: 14px;
+    }
+    .news-card:hover { border-left-color: #ffaa00; background: #1a1a1a; }
+    .news-card .news-date {
+      font-size: 14px;
+      color: #ffd700;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .news-card .news-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .news-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .news-card ul li {
+      color: #bbb;
+      font-size: 15px;
+      line-height: 1.8;
+      padding: 4px 0 4px 24px;
+      position: relative;
+    }
+    .news-card ul li::before {
+      content: "▸";
+      color: #9b2d30;
+      position: absolute;
+      left: 2px;
+      font-weight: 700;
+    }
+    .news-card ul li strong { color: #fff; }
+    .vk-link-wrapper {
+      margin: 14px 0 6px;
+      padding: 12px 18px;
+      background: #161616;
+      border-radius: 14px;
+      border: 1px solid #2a2a2a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      transition: 0.2s;
+    }
+    .vk-link-wrapper:hover { border-color: #9b2d30; background: #1a1a1a; }
+    .vk-link-wrapper .vk-icon {
+      font-size: 28px;
+      color: #9b2d30;
+      transition: 0.3s;
+    }
+    .vk-link-wrapper .vk-icon:hover { color: #b33a3d; transform: scale(1.2); }
+    .about-section,
+    .promo-section,
+    .leadership-section,
+    .unions-section,
+    .palace-section,
+    .achievements-section,
+    .forum-section,
+    .giveaway-section {
+      display: none;
+      margin: 20px 0 10px;
+      padding: 20px 24px;
+      background: #111;
+      border-radius: 16px;
+      border: 1px solid #2a2a2a;
+      animation: fadeSlide 0.35s ease;
+    }
+    .about-section.visible,
+    .promo-section.visible,
+    .leadership-section.visible,
+    .unions-section.visible,
+    .palace-section.visible,
+    .achievements-section.visible,
+    .forum-section.visible,
+    .giveaway-section.visible { display: block; }
+    @keyframes fadeSlide {
+      0% { opacity: 0; transform: translateY(-12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .promo-section h2, .leadership-section h2, .unions-section h2,
+    .palace-section h2, .achievements-section h2, .forum-section h2,
+    .giveaway-section h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #9400d3;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 12px;
+    }
+    .rank-block {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+      border-left: 4px solid #9b2d30;
+      transition: 0.2s;
+    }
+    .rank-block:hover { border-left-color: #b33a3d; background: #1a1a1a; }
+    .rank-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .leader-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 14px;
+      border-left: 4px solid #9b2d30;
+      transition: 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .leader-card:hover { border-left-color: #b33a3d; background: #1a1a1a; }
+    .leader-card .leader-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .leader-card .name { font-size: 18px; font-weight: 700; color: #fff; }
+    .leader-card .rank { font-size: 14px; color: #9400d3; font-weight: 600; }
+    .leader-card .leader-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .leader-card .phone {
+      font-size: 14px;
+      color: #888;
+      background: #222;
+      padding: 4px 14px;
+      border-radius: 30px;
+      border: 1px solid #333;
+    }
+    .leader-card .phone .highlight { color: #9b2d30; font-weight: 600; }
+    .leader-card .vk-link {
+      color: #4a76a8;
+      font-size: 20px;
+      transition: 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1a1a2a;
+      border: 1px solid #2a2a3a;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .leader-card .vk-link:hover {
+      color: #fff;
+      background: #4a76a8;
+      border-color: #4a76a8;
+      transform: scale(1.15);
+      box-shadow: 0 0 20px rgba(74, 118, 168, 0.4);
+    }
+    .union-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 14px;
+      border-left: 4px solid #9b2d30;
+      transition: 0.2s;
+    }
+    .union-card:hover { border-left-color: #b33a3d; background: #1a1a1a; }
+    .union-card .union-name { font-size: 18px; font-weight: 700; color: #fff; }
+    .union-card .union-leader { font-size: 14px; color: #9400d3; margin-top: 4px; }
+    .palace-info {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+      border-left: 4px solid #9b2d30;
+    }
+    .palace-info .address { font-size: 16px; color: #fff; font-weight: 600; }
+    .palace-info .address small { font-weight: 400; color: #888; }
+    .palace-info .location { font-size: 14px; color: #9400d3; margin-top: 4px; }
+    .car-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .car-item {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .car-item:hover { border-color: #9b2d30; background: #222; transform: scale(1.02); }
+    .car-item .car-icon {
+      font-size: 32px;
+      color: #9b2d30;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .car-item .car-name {
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 6px;
+      display: block;
+    }
+    .car-item img {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 4px;
+    }
+    .achievement-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 14px;
+      border-left: 4px solid #ffd700;
+      transition: 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .achievement-card:hover { border-left-color: #ffaa00; background: #1a1a1a; }
+    .achievement-card .ach-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .achievement-card .ach-nick {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .achievement-card .ach-nick i {
+      color: #ffd700;
+      margin-right: 8px;
+    }
+    .achievement-card .ach-title {
+      font-size: 15px;
+      color: #ffd700;
+      font-weight: 600;
+    }
+    .achievement-card .ach-date {
+      font-size: 13px;
+      color: #888;
+      background: #222;
+      padding: 4px 14px;
+      border-radius: 30px;
+      border: 1px solid #333;
+      white-space: nowrap;
+    }
+    .forum-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      border-left: 4px solid #9b2d30;
+      transition: 0.2s;
+    }
+    .forum-card:hover { border-left-color: #b33a3d; background: #1a1a1a; }
+    .forum-card .forum-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #9400d3;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .forum-card .forum-link:hover { color: #b366d6; text-decoration: underline; }
+    .forum-card .forum-label { color: #aaa; font-size: 14px; }
+    .forum-card .forum-link i {
+      margin-right: 8px;
+      color: #9b2d30;
+    }
+    .giveaway-card {
+      background: #161616;
+      border-radius: 14px;
+      padding: 18px 22px;
+      border-left: 4px solid #ffd700;
+      transition: 0.2s;
+      margin-bottom: 14px;
+    }
+    .giveaway-card:hover { border-left-color: #ffaa00; background: #1a1a1a; }
+    .giveaway-card .giveaway-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffd700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .giveaway-card .giveaway-title i { color: #ffd700; }
+    .giveaway-card .giveaway-creator {
+      color: #aaa;
+      font-size: 14px;
+      margin: 6px 0;
+    }
+    .giveaway-card .giveaway-creator strong { color: #fff; }
+    .giveaway-card .giveaway-prize {
+      font-size: 16px;
+      color: #fff;
+      margin: 4px 0;
+    }
+    .giveaway-card .giveaway-prize .prize-amount {
+      color: #ffd700;
+      font-weight: 700;
+    }
+    .giveaway-card .giveaway-end {
+      color: #888;
+      font-size: 14px;
+    }
+    .giveaway-card .giveaway-end strong { color: #ccc; }
+    .countdown-timer {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      background: #0d0d0d;
+      border-radius: 12px;
+      padding: 14px 20px;
+      border: 1px solid #2a2a2a;
+      margin-top: 8px;
+    }
+    .countdown-timer .time-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .countdown-timer .time-block .number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ffd700;
+      font-family: 'Courier New', monospace;
+      min-width: 50px;
+      text-align: center;
+    }
+    .countdown-timer .time-block .label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .countdown-timer .separator {
+      font-size: 28px;
+      color: #555;
+      font-weight: 300;
+      display: flex;
+      align-items: center;
+    }
+    .countdown-ended {
+      color: #ff6b6b;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      padding: 12px 0;
+      background: #1a0a0a;
+      border-radius: 12px;
+      border: 1px solid #ff6b6b;
+    }
+    .footer-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #2a2a2a;
+      font-size: 13px;
+      color: #666;
+      letter-spacing: 0.3px;
+    }
+    .footer-line a {
+      color: #888;
+      transition: all 0.3s ease;
+      display: inline-block;
+      font-size: 22px;
+    }
+    .footer-line a:hover {
+      color: #9b2d30 !important;
+      transform: scale(1.2);
+    }
+    .footer-line .red { color: #9b2d30; font-weight: 700; }
+    .footer-line .purple { color: #9400d3; }
+    @keyframes counterPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .stat-number.animated {
+      animation: counterPop 0.6s ease-out forwards;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 16px; border-radius: 16px; }
+      .top-row { flex-direction: column; align-items: center; padding-left: 0; padding-top: 50px; }
+      .main-logo { font-size: 34px; letter-spacing: 3px; }
+      .main-logo small { font-size: 14px; }
+      .section-heading { font-size: 20px; }
+      .promo-section, .leadership-section, .unions-section, .palace-section, .achievements-section, .forum-section,
+      .giveaway-section, .news-section { padding: 14px 16px; }
+      .rank-block { padding: 14px 16px; }
+      .rank-title { font-size: 16px; }
+      .leader-card { flex-direction: column; align-items: flex-start; }
+      .burger-btn { top: 14px; left: 14px; width: 38px; height: 38px; }
+      .drawer { width: 280px; left: -300px; }
+      .car-grid { grid-template-columns: 1fr 1fr; }
+      .vk-link-wrapper { flex-direction: column; align-items: flex-start; }
+      .footer-line { flex-direction: column; align-items: center; text-align: center; }
+      .countdown-timer { gap: 10px; justify-content: center; }
+      .countdown-timer .time-block .number { font-size: 24px; min-width: 35px; }
+      .countdown-timer .separator { font-size: 20px; }
+      .giveaway-card { padding: 14px 16px; }
+      .achievement-card { flex-direction: column; align-items: flex-start; }
+      .news-card { padding: 16px 18px; }
+      .leader-card .leader-left { flex-direction: column; align-items: flex-start; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <button class="close-area" id="closeDrawerBtn">✕</button>
+  <div class="drawer-title">EMPIRE COLLE</div>
+  <button class="drawer-btn active" data-target="about">О семье</button>
+  <button class="drawer-btn" data-target="news">Новости</button>
+  <button class="drawer-btn" data-target="achievements">Достижения</button>
+  <button class="drawer-btn" data-target="giveaway">Розыгрыши</button>
+  <button class="drawer-btn" data-target="leadership">Руководство</button>
+  <button class="drawer-btn" data-target="unions">Союзы</button>
+  <button class="drawer-btn" data-target="promo">Повышение</button>
+  <button class="drawer-btn" data-target="palace">Дворец и автопарк</button>
+  <button class="drawer-btn" data-target="forum">Форум</button>
+</div>
+
+<div class="container">
+  <div class="burger-btn" id="burgerBtn">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="top-row">
+    <div class="main-logo">Empire Colle <small>— Florida #2</small></div>
+  </div>
+
+  <div class="about-section visible" id="aboutSection">
+    <div class="section-heading">I. Описание Empire Colle <small>— Florida #2</small></div>
+    <div class="desc-block" id="familyDescription">
+      <strong>Empire Colle</strong> — это не просто семья, это <strong>братство</strong>, скреплённое кровью и доверием. Мы — тень на улицах Florida #2, где <strong>сила в единстве</strong>, а <strong>слово — закон</strong>. Наш путь — от мечты к империи.<br/>
+      <span style="color:#9400d3; font-weight:500;">«Вместе мы — сила, порознь — ничто».</span>
+    </div>
+    <div class="vk-link-wrapper">
+      <a href="https://vk.me/join/eUM0kxmrEP5hu10mL5oXiyKtHORcop5mfTI=" target="_blank" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+        <i class="fab fa-vk vk-icon"></i>
+        <span style="color:#ccc; font-size:14px;">Вступить в беседу VK</span>
+      </a>
+    </div>
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-number" id="memberCount">0</div>
+        <div class="stat-label">Численность участников семьи</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">Florida #2</div>
+        <div class="stat-label">Основной сервер деятельности</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="news-section" id="newsSection">
+    <h2>📰 Новости семьи</h2>
+    <div id="newsListContainer"></div>
+  </div>
+
+  <div class="achievements-section" id="achievementsSection">
+    <h2>🏆 Достижения</h2>
+    <div id="achievementsList"></div>
+  </div>
+
+  <div class="giveaway-section" id="giveawaySection">
+    <h2>🎁 Розыгрыши</h2>
+    <div id="giveawayListContainer"></div>
+  </div>
+
+  <div class="leadership-section" id="leadershipSection">
+    <h2>👑 Руководство</h2>
+    <div id="leadershipList"></div>
+  </div>
+
+  <div class="unions-section" id="unionsSection">
+    <h2>🤝 Союзы</h2>
+    <div id="unionsList">
+      <div class="union-card"><div class="union-name">Hanow Squad</div><div class="union-leader">Don Hanow: Hakim Hanow</div></div>
+    </div>
+  </div>
+
+  <div class="promo-section" id="promoSection">
+    <h2>📈 Повышение в ранге</h2>
+    <div class="rank-block">
+      <div class="rank-title" style="color:#ffd700; text-align:center; justify-content:center;">
+        <span style="font-size:20px;">⭐ Теперь ваше продвижение полностью зависит от активности и реальной помощи семье!</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="palace-section" id="palaceSection">
+    <h2>🏰 Дворец и автопарк</h2>
+    <div class="palace-info">
+      <div class="address">📍 Дом расположен в городе <strong>Los-Santos</strong> на горе <strong>Vine-Wood</strong>, номер дома <strong>33</strong></div>
+      <div class="location">Район — Вице-Сити, Florida #2</div>
+    </div>
+    <h3 style="color:#fff; font-size:18px; margin:16px 0 8px;">🚗 Автопарк</h3>
+    <div class="car-grid" id="carsGrid">
+      <div style="color:#888; text-align:center; padding:20px; grid-column:1/-1;">Загрузка автомобилей...</div>
+    </div>
+  </div>
+
+  <div class="forum-section" id="forumSection">
+    <h2>💬 Форум</h2>
+    <div class="forum-card">
+      <div class="forum-label">Обсуждения, новости и объявления семьи:</div>
+      <a href="https://forum.empirecolle.com" class="forum-link" target="_blank">
+        <i class="fas fa-google"></i> Перейти на форум
+      </a>
+      <div style="margin-top:12px; color:#aaa; font-size:14px;">🔒 Доступ только для участников семьи (логин по приглашению).</div>
+    </div>
+  </div>
+
+  <div class="footer-line">
+    <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+      <span class="red">Empire Colle</span>
+      <span>© 2026</span>
+      <span class="purple">Florida #2</span>
+    </div>
+    <div style="display:flex; gap:16px; align-items:center;">
+      <a href="https://vk.me/join/eUM0kxmrEP5hu10mL5oXiyKtHORcop5mfTI=" target="_blank" title="VK">
+        <i class="fab fa-vk"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== КНОПКА АДМИНКИ ===== -->
+<div id="adminLoginBtn" style="position:fixed; bottom:20px; right:20px; z-index:999; background:#9b2d30; color:#fff; border:none; border-radius:50%; width:55px; height:55px; font-size:24px; cursor:pointer; box-shadow:0 0 30px rgba(155,45,48,0.5); display:flex; align-items:center; justify-content:center; transition:0.3s;">
+  👑
+</div>
+
+<!-- ===== ОКНО ВХОДА ===== -->
+<div id="loginModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+  <div style="background:#1a1a1a; border:2px solid #9b2d30; border-radius:20px; padding:40px; max-width:400px; width:90%; box-shadow:0 0 80px rgba(155,45,48,0.2);">
+    <h2 style="color:#9b2d30; text-align:center; margin-bottom:20px;">🔐 Вход в админку</h2>
+    <input type="password" id="adminPasswordInput" placeholder="Введите пароль" style="width:100%; padding:14px; border-radius:10px; background:#222; border:1px solid #333; color:#fff; font-size:16px; margin-bottom:15px;">
+    <button id="adminLoginSubmit" style="width:100%; padding:14px; background:#9b2d30; border:none; border-radius:10px; color:#fff; font-size:16px; font-weight:600; cursor:pointer; transition:0.3s;">Войти</button>
+    <div id="loginError" style="color:#ff6b6b; text-align:center; margin-top:12px; display:none;">❌ Неверный пароль</div>
+  </div>
+</div>
+
+<!-- ===== АДМИН-ПАНЕЛЬ ===== -->
+<div id="adminPanel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:3000; justify-content:center; align-items:center; overflow-y:auto; padding:20px;">
+  <div style="background:#1a1a1a; border:2px solid #9b2d30; border-radius:20px; padding:30px; max-width:800px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 0 100px rgba(155,45,48,0.15);">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #2a2a2a; padding-bottom:15px;">
+      <h2 style="color:#9b2d30; margin:0;">👑 Админ-панель</h2>
+      <button id="adminPanelClose" style="background:none; border:none; color:#888; font-size:28px; cursor:pointer; transition:0.3s;">✕</button>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 1: ОПИСАНИЕ СЕМЬИ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#fff; margin:0 0 12px 0; font-size:18px;">📝 Редактирование описания семьи</h3>
+      <textarea id="familyDescInput" rows="4" style="width:100%; padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px; resize:vertical;"></textarea>
+      <button id="saveDescBtn" style="margin-top:8px; padding:10px 20px; background:#9b2d30; border:none; border-radius:8px; color:#fff; cursor:pointer; transition:0.3s;">💾 Сохранить описание</button>
+      <div id="descSaveStatus" style="color:#4caf50; font-size:13px; margin-top:6px; display:none;">✅ Описание сохранено!</div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 2: РОЗЫГРЫШИ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#ffd700; margin:0 0 12px 0; font-size:18px;">🎁 Управление розыгрышами</h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <input type="text" id="gTitle" placeholder="Название розыгрыша" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="gPrize" placeholder="Приз (например: 500.000$)" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="gWinner" placeholder="Победитель (или 'Не разыгран')" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="datetime-local" id="gEndDate" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <button id="addGiveawayBtn" style="padding:10px; background:#9b2d30; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s;">➕ Добавить розыгрыш</button>
+      </div>
+      <div id="giveawayList" style="max-height:200px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 3: НОВОСТИ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#9400d3; margin:0 0 12px 0; font-size:18px;">📰 Управление новостями</h3>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input type="text" id="newsInput" placeholder="Текст новости..." style="flex:1; padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <button id="addNewsBtn" style="padding:10px 20px; background:#9b2d30; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s;">+</button>
+      </div>
+      <div id="newsList" style="max-height:150px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 4: РУКОВОДСТВО ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#fff; margin:0 0 12px 0; font-size:18px;">👑 Управление руководством</h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <input type="text" id="lName" placeholder="Имя" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="lRank" placeholder="Ранг" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="lPhone" placeholder="Телефон" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="lVk" placeholder="Ссылка VK (например: https://vk.com/id123)" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <button id="addLeaderBtn" style="padding:10px; background:#9b2d30; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s;">➕ Добавить</button>
+      </div>
+      <div id="leaderList" style="max-height:150px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 5: ДОСТИЖЕНИЯ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#ffd700; margin:0 0 12px 0; font-size:18px;">🏆 Управление достижениями</h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <input type="text" id="aNick" placeholder="Никнейм" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="aTitle" placeholder="Достижение" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <input type="text" id="aDate" placeholder="Дата" style="padding:10px; border-radius:8px; background:#222; border:1px solid #333; color:#fff; font-size:14px;">
+        <button id="addAchievementBtn" style="padding:10px; background:#9b2d30; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s;">➕ Добавить</button>
+      </div>
+      <div id="achievementList" style="max-height:150px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 6: ЭКСПОРТ/ИМПОРТ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; margin-bottom:15px; border:1px solid #2a2a2a;">
+      <h3 style="color:#9400d3; margin:0 0 12px 0; font-size:18px;">💾 Бэкап данных</h3>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="exportDataBtn" style="flex:1; padding:12px; background:#9400d3; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s; min-width:120px;">📥 Скачать бэкап</button>
+        <button id="importDataBtn" style="flex:1; padding:12px; background:#9b2d30; border:none; border-radius:8px; color:#fff; font-weight:600; cursor:pointer; transition:0.3s; min-width:120px;">📤 Загрузить бэкап</button>
+        <input type="file" id="importFileInput" style="display:none;" accept=".json">
+      </div>
+      <div id="backupStatus" style="color:#888; font-size:13px; margin-top:8px;"></div>
+    </div>
+
+    <!-- ===== РАЗДЕЛ 7: ЛОГ ДЕЙСТВИЙ ===== -->
+    <div style="background:#111; border-radius:12px; padding:16px; border:1px solid #2a2a2a;">
+      <h3 style="color:#888; margin:0 0 12px 0; font-size:18px;">📋 История действий</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="color:#555; font-size:12px;">Последние действия</span>
+        <button id="clearLogBtn" style="background:#2a1a1a; color:#888; border:1px solid #442222; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:12px;">Очистить</button>
+      </div>
+      <div id="actionLog" style="max-height:200px; overflow-y:auto; background:#0d0d0d; border-radius:8px; padding:10px; font-size:12px; color:#666; border:1px solid #1a1a1a;">
+        <div style="color:#444; text-align:center; padding:10px;">История пуста</div>
+      </div>
+    </div>
+
+    <div style="margin-top:15px; padding-top:12px; border-top:1px solid #2a2a2a; text-align:center; color:#555; font-size:12px;">
+      💾 Все данные хранятся в вашем браузере (localStorage)
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// VK ССЫЛКИ
+// ============================================================
+(function() {
+  document.querySelectorAll('.vk-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var url = this.getAttribute('data-url');
+      if (url) window.open(url, '_blank');
+    });
+  });
+})();
+
+// ============================================================
+// СЧЁТЧИК
+// ============================================================
+(function() {
+  var counter = document.getElementById('memberCount');
+  if (!counter) return;
+  var target = 80, current = 0, duration = 2000, startTime = performance.now();
+  function updateCounter(time) {
+    var elapsed = time - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 4);
+    current = Math.floor(eased * target);
+    counter.textContent = current + '+';
+    if (current > 0 && current % 5 === 0) {
+      counter.classList.remove('animated');
+      setTimeout(function(){ counter.classList.add('animated'); }, 10);
+    }
+    if (progress < 1) requestAnimationFrame(updateCounter);
+    else {
+      counter.classList.remove('animated');
+      setTimeout(function(){ counter.classList.add('animated'); }, 10);
+    }
+  }
+  setTimeout(function(){ requestAnimationFrame(updateCounter); }, 500);
+})();
+
+// ============================================================
+// FIREBASE
+// ============================================================
+var firebaseConfig = {
+  apiKey: "AIzaSyAMqxu9FTH570asf-zdYqo8QrD_EjWKBg8",
+  authDomain: "empirecolle-c0b0e.firebaseapp.com",
+  databaseURL: "https://empirecolle-c0b0e-default-rtdb.firebaseio.com",
+  projectId: "empirecolle-c0b0e",
+  storageBucket: "empirecolle-c0b0e.firebasestorage.app",
+  messagingSenderId: "53588426911",
+  appId: "1:53588426911:web:debe0d6f1874d80ce6a2aa"
+};
+var db = null, firebaseInitialized = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  firebaseInitialized = true;
+} catch(e) { console.warn('Firebase не настроена'); }
+
+function loadCarsFromFirebase() {
+  var grid = document.getElementById('carsGrid');
+  if (!grid) return;
+  if (!firebaseInitialized || !db) {
+    grid.innerHTML = '<div class="car-item"><i class="fas fa-car car-icon"></i><span class="car-name">Mercedes G65</span></div><div class="car-item"><i class="fas fa-car-side car-icon"></i><span class="car-name">BMW M5 F90</span></div><div class="car-item"><i class="fas fa-car car-icon"></i><span class="car-name">BMW i8</span></div><div class="car-item"><i class="fas fa-car car-icon"></i><span class="car-name">Infinity Q60</span></div><div class="car-item"><i class="fas fa-motorcycle car-icon"></i><span class="car-name">Yamaha YZF-R1</span></div>';
+    return;
+  }
+  db.ref('cars').on('value', function(snapshot) {
+    var data = snapshot.val();
+    if (!data) { grid.innerHTML = '<div style="color:#888; text-align:center; padding:20px; grid-column:1/-1;">Нет данных</div>'; return; }
+    var html = '';
+    for (var key in data) {
+      var car = data[key];
+      html += car.image ? '<div class="car-item"><img src="'+car.image+'" alt="'+car.name+'" /><span class="car-name">'+car.name+'</span></div>' : '<div class="car-item"><i class="fas fa-car car-icon"></i><span class="car-name">'+car.name+'</span></div>';
+    }
+    grid.innerHTML = html;
+  });
+}
+loadCarsFromFirebase();
+
+// ============================================================
+// ШТОРКА
+// ============================================================
+(function() {
+  var burger = document.getElementById('burgerBtn');
+  var drawer = document.getElementById('drawer');
+  var overlay = document.getElementById('overlay');
+  var closeBtn = document.getElementById('closeDrawerBtn');
+  function toggleDrawer(open) {
+    if (open === undefined) {
+      drawer.classList.toggle('open');
+      overlay.classList.toggle('visible');
+      burger.classList.toggle('active');
+    } else if (open) {
+      drawer.classList.add('open');
+      overlay.classList.add('visible');
+      burger.classList.add('active');
+    } else {
+      drawer.classList.remove('open');
+      overlay.classList.remove('visible');
+      burger.classList.remove('active');
+    }
+  }
+  if (burger) burger.addEventListener('click', function(e){ e.stopPropagation(); toggleDrawer(); });
+  if (closeBtn) closeBtn.addEventListener('click', function(){ toggleDrawer(false); });
+  if (overlay) overlay.addEventListener('click', function(){ toggleDrawer(false); });
+  var drawerBtns = document.querySelectorAll('.drawer-btn');
+  var sections = {
+    about: document.getElementById('aboutSection'),
+    news: document.getElementById('newsSection'),
+    achievements: document.getElementById('achievementsSection'),
+    giveaway: document.getElementById('giveawaySection'),
+    leadership: document.getElementById('leadershipSection'),
+    unions: document.getElementById('unionsSection'),
+    promo: document.getElementById('promoSection'),
+    palace: document.getElementById('palaceSection'),
+    forum: document.getElementById('forumSection')
+  };
+  drawerBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var target = btn.getAttribute('data-target');
+      drawerBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      for (var key in sections) {
+        if (sections[key]) sections[key].classList.remove('visible');
+      }
+      if (target && sections[target]) sections[target].classList.add('visible');
+      toggleDrawer(false);
+    });
+  });
+})();
+
+// ============================================================
+// ТАЙМЕР ДЛЯ РОЗЫГРЫША
+// ============================================================
+(function() {
+  function startCountdown(endDateStr, containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var endDate = new Date(endDateStr);
+    if (isNaN(endDate)) return;
+    function updateTimer() {
+      var now = new Date();
+      var diff = endDate - now;
+      if (diff <= 0) {
+        container.innerHTML = '<div class="countdown-ended">🎉 Розыгрыш завершён!</div>';
+        return;
+      }
+      var days = Math.floor(diff / (1000*60*60*24));
+      var hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+      var minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
+      var seconds = Math.floor((diff % (1000*60)) / 1000);
+      container.innerHTML = '<div class="countdown-timer"><div class="time-block"><span class="number">'+String(days).padStart(2,'0')+'</span><span class="label">Дни</span></div><span class="separator">:</span><div class="time-block"><span class="number">'+String(hours).padStart(2,'0')+'</span><span class="label">Часы</span></div><span class="separator">:</span><div class="time-block"><span class="number">'+String(minutes).padStart(2,'0')+'</span><span class="label">Минуты</span></div><span class="separator">:</span><div class="time-block"><span class="number">'+String(seconds).padStart(2,'0')+'</span><span class="label">Секунды</span></div></div>';
+    }
+    updateTimer();
+    return setInterval(updateTimer, 1000);
+  }
+  window.startCountdown = startCountdown;
+})();
+
+// ============================================================
+// АДМИН-ПАНЕЛЬ (с новыми функциями)
+// ============================================================
+(function() {
+  var ADMIN_PASSWORD = 'Empire@2026#Strong!';
+  var KEYS = {
+    giveaways: 'empire_giveaways',
+    news: 'empire_news',
+    leaders: 'empire_leaders',
+    achievements: 'empire_achievements',
+    description: 'empire_description',
+    unions: 'empire_unions',
+    log: 'empire_action_log'
+  };
+
+  function getData(key) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
+  }
+  function saveData(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  // ===== ЛОГГИРОВАНИЕ =====
+  function addLog(action) {
+    var logs = getData(KEYS.log);
+    var time = new Date().toLocaleString('ru-RU');
+    logs.unshift({ time: time, action: action });
+    if (logs.length > 50) logs = logs.slice(0, 50);
+    saveData(KEYS.log, logs);
+    renderLogs();
+  }
+
+  function renderLogs() {
+    var logs = getData(KEYS.log);
+    var container = document.getElementById('actionLog');
+    if (!container) return;
+    if (logs.length === 0) {
+      container.innerHTML = '<div style="color:#444; text-align:center; padding:10px;">История пуста</div>';
+      return;
+    }
+    var html = '';
+    logs.forEach(function(log) {
+      html += '<div style="padding:4px 0; border-bottom:1px solid #1a1a1a; color:#888;"><span style="color:#555; font-size:11px;">'+log.time+'</span> — '+log.action+'</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  // ===== ОБНОВЛЕНИЕ ГЛАВНОЙ СТРАНИЦЫ =====
+  function updateMainPage() {
+    // Описание
+    var desc = getData(KEYS.description);
+    var descBlock = document.getElementById('familyDescription');
+    if (descBlock && desc.length > 0) {
+      descBlock.innerHTML = desc[0].text;
+    }
+
+    // Розыгрыши
+    var giveaways = getData(KEYS.giveaways);
+    var gContainer = document.getElementById('giveawayListContainer');
+    if (gContainer) {
+      if (giveaways.length === 0) {
+        gContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Розыгрышей пока нет</div>';
+      } else {
+        var html = '';
+        giveaways.forEach(function(g, index) {
+          var timerId = 'timer_'+index;
+          html += '<div class="giveaway-card">';
+          html += '<div class="giveaway-title"><i class="fas fa-gift"></i> '+g.title+'</div>';
+          html += '<div class="giveaway-creator"><i class="fas fa-user"></i> Победитель: <strong>'+(g.winner||'Не разыгран')+'</strong></div>';
+          html += '<div class="giveaway-prize"><i class="fas fa-coins"></i> Приз: <span class="prize-amount">'+g.prize+'</span></div>';
+          html += '<div class="giveaway-end"><i class="fas fa-clock"></i> Окончание: <strong>'+(g.endDate||'Скоро')+'</strong></div>';
+          html += '<div id="'+timerId+'"></div>';
+          html += '</div>';
+        });
+        gContainer.innerHTML = html;
+        giveaways.forEach(function(g, index) {
+          if (g.endDate) {
+            var timerId = 'timer_'+index;
+            window.startCountdown(g.endDate, timerId);
+          }
+        });
+      }
+    }
+
+    // Новости
+    var news = getData(KEYS.news);
+    var nContainer = document.getElementById('newsListContainer');
+    if (nContainer) {
+      if (news.length === 0) {
+        nContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Новостей пока нет</div>';
+      } else {
+        var html = '<div class="news-card"><ul>';
+        news.forEach(function(item) {
+          html += '<li><strong>'+item.text+'</strong></li>';
+        });
+        html += '</ul></div>';
+        nContainer.innerHTML = html;
+      }
+    }
+
+    // Руководство
+    var leaders = getData(KEYS.leaders);
+    var lContainer = document.getElementById('leadershipList');
+    if (lContainer) {
+      if (leaders.length === 0) {
+        lContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Руководство не добавлено</div>';
+      } else {
+        var html = '';
+        leaders.forEach(function(l) {
+          var vkLink = l.vk ? l.vk : '#';
+          html += '<div class="leader-card">';
+          html += '<div class="leader-left"><span class="name">'+l.name+'</span><span class="rank">'+l.rank+'</span></div>';
+          html += '<div class="leader-right"><span class="phone">📞 <span class="highlight">'+(l.phone||'xxx-xxx')+'</span></span>';
+          html += '<a href="'+vkLink+'" class="vk-link" target="_blank" onclick="event.stopPropagation();"><i class="fab fa-vk"></i></a>';
+          html += '</div></div>';
+        });
+        lContainer.innerHTML = html;
+      }
+    }
+
+    // Достижения
+    var achievements = getData(KEYS.achievements);
+    var aContainer = document.getElementById('achievementsList');
+    if (aContainer) {
+      if (achievements.length === 0) {
+        aContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Достижений нет</div>';
+      } else {
+        var html = '';
+        achievements.forEach(function(a) {
+          html += '<div class="achievement-card"><div class="ach-left"><div class="ach-nick"><i class="fas fa-user"></i> '+a.nick+'</div><div class="ach-title">⭐ '+a.title+'</div></div><div class="ach-date">📅 '+(a.date||'Недавно')+'</div></div>';
+        });
+        aContainer.innerHTML = html;
+      }
+    }
+
+    // Союзы
+    var unions = getData(KEYS.unions);
+    var uContainer = document.getElementById('unionsList');
+    if (uContainer) {
+      if (unions.length === 0) {
+        uContainer.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Союзов пока нет</div>';
+      } else {
+        var html = '';
+        unions.forEach(function(u) {
+          html += '<div class="union-card"><div class="union-name">'+u.name+'</div><div class="union-leader">'+u.leader+'</div></div>';
+        });
+        uContainer.innerHTML = html;
+      }
+    }
+  }
+
+  // ===== ОТОБРАЖЕНИЕ СПИСКОВ В АДМИНКЕ =====
+  function renderAdminLists() {
+    var giveaways = getData(KEYS.giveaways);
+    var gList = document.getElementById('giveawayList');
+    if (gList) {
+      gList.innerHTML = giveaways.map(function(item, index) {
+        return '<div style="display:flex; justify-content:space-between; align-items:center; background:#0d0d0d; padding:8px 12px; border-radius:6px; margin-bottom:4px; border-left:3px solid #ffd700;"><span style="color:#ccc; font-size:13px;"><strong style="color:#ffd700;">'+item.title+'</strong> — '+item.prize+'</span><button onclick="window.deleteItem(\''+KEYS.giveaways+'\','+index+')" style="background:#2a1a1a; color:#ff6b6b; border:1px solid #442222; border-radius:4px; padding:2px 10px; cursor:pointer;">✕</button></div>';
+      }).join('');
+    }
+
+    var news = getData(KEYS.news);
+    var nList = document.getElementById('newsList');
+    if (nList) {
+      nList.innerHTML = news.map(function(item, index) {
+        return '<div style="display:flex; justify-content:space-between; align-items:center; background:#0d0d0d; padding:8px 12px; border-radius:6px; margin-bottom:4px; border-left:3px solid #9400d3;"><span style="color:#ccc; font-size:13px;">'+item.text+'</span><button onclick="window.deleteItem(\''+KEYS.news+'\','+index+')" style="background:#2a1a1a; color:#ff6b6b; border:1px solid #442222; border-radius:4px; padding:2px 10px; cursor:pointer;">✕</button></div>';
+      }).join('');
+    }
+
+    var leaders = getData(KEYS.leaders);
+    var lList = document.getElementById('leaderList');
+    if (lList) {
+      lList.innerHTML = leaders.map(function(item, index) {
+        return '<div style="display:flex; justify-content:space-between; align-items:center; background:#0d0d0d; padding:8px 12px; border-radius:6px; margin-bottom:4px; border-left:3px solid #9b2d30;"><span style="color:#ccc; font-size:13px;"><strong style="color:#fff;">'+item.name+'</strong> — '+item.rank+'</span><button onclick="window.deleteItem(\''+KEYS.leaders+'\','+index+')" style="background:#2a1a1a; color:#ff6b6b; border:1px solid #442222; border-radius:4px; padding:2px 10px; cursor:pointer;">✕</button></div>';
+      }).join('');
+    }
+
+    var achievements = getData(KEYS.achievements);
+    var aList = document.getElementById('achievementList');
+    if (aList) {
+      aList.innerHTML = achievements.map(function(item, index) {
+        return '<div style="display:flex; justify-content:space-between; align-items:center; background:#0d0d0d; padding:8px 12px; border-radius:6px; margin-bottom:4px; border-left:3px solid #ffd700;"><span style="color:#ccc; font-size:13px;"><strong style="color:#fff;">'+item.nick+'</strong> — '+item.title+'</span><button onclick="window.deleteItem(\''+KEYS.achievements+'\','+index+')" style="background:#2a1a1a; color:#ff6b6b; border:1px solid #442222; border-radius:4px; padding:2px 10px; cursor:pointer;">✕</button></div>';
+      }).join('');
+    }
+  }
+
+  window.deleteItem = function(key, index) {
+    if (confirm('Удалить этот элемент?')) {
+      var data = getData(key);
+      data.splice(index, 1);
+      saveData(key, data);
+      addLog('Удалён элемент из '+key);
+      renderAdminLists();
+      updateMainPage();
+    }
+  };
+
+  // ===== ДОБАВЛЕНИЕ =====
+  function setupAddButtons() {
+    // Описание
+    var saveDesc = document.getElementById('saveDescBtn');
+    if (saveDesc) {
+      saveDesc.onclick = function() {
+        var text = document.getElementById('familyDescInput').value;
+        if (!text.trim()) { alert('Введите текст описания!'); return; }
+        saveData(KEYS.description, [{ text: text }]);
+        addLog('Обновлено описание семьи');
+        document.getElementById('descSaveStatus').style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('descSaveStatus').style.display = 'none';
+        }, 3000);
+        updateMainPage();
+      };
+    }
+
+    // Розыгрыши
+    var addGiveaway = document.getElementById('addGiveawayBtn');
+    if (addGiveaway) {
+      addGiveaway.onclick = function() {
+        var title = document.getElementById('gTitle').value.trim();
+        var prize = document.getElementById('gPrize').value.trim();
+        var winner = document.getElementById('gWinner').value.trim() || 'Не разыгран';
+        var endDate = document.getElementById('gEndDate').value || new Date(Date.now() + 7*24*60*60*1000).toISOString().slice(0,16);
+        if (!title || !prize) { alert('Заполните название и приз!'); return; }
+        var data = getData(KEYS.giveaways);
+        data.push({ title: title, prize: prize, winner: winner, endDate: endDate });
+        saveData(KEYS.giveaways, data);
+        addLog('Добавлен розыгрыш: '+title);
+        document.getElementById('gTitle').value = '';
+        document.getElementById('gPrize').value = '';
+        document.getElementById('gWinner').value = '';
+        document.getElementById('gEndDate').value = '';
+        renderAdminLists();
+        updateMainPage();
+      };
+    }
+
+    // Новости
+    var addNews = document.getElementById('addNewsBtn');
+    if (addNews) {
+      addNews.onclick = function() {
+        var input = document.getElementById('newsInput');
+        var text = input.value.trim();
+        if (!text) return;
+        var data = getData(KEYS.news);
+        data.push({ text: text });
+        saveData(KEYS.news, data);
+        addLog('Добавлена новость: '+text.substring(0,30)+'...');
+        input.value = '';
+        renderAdminLists();
+        updateMainPage();
+      };
+    }
+
+    // Руководство
+    var addLeader = document.getElementById('addLeaderBtn');
+    if (addLeader) {
+      addLeader.onclick = function() {
+        var name = document.getElementById('lName').value.trim();
+        var rank = document.getElementById('lRank').value.trim();
+        var phone = document.getElementById('lPhone').value.trim() || 'xxx-xxx';
+        var vk = document.getElementById('lVk').value.trim() || '#';
+        if (!name || !rank) { alert('Заполните имя и ранг!'); return; }
+        var data = getData(KEYS.leaders);
+        data.push({ name: name, rank: rank, phone: phone, vk: vk });
+        saveData(KEYS.leaders, data);
+        addLog('Добавлен участник руководства: '+name);
+        document.getElementById('lName').value = '';
+        document.getElementById('lRank').value = '';
+        document.getElementById('lPhone').value = '';
+        document.getElementById('lVk').value = '';
+        renderAdminLists();
+        updateMainPage();
+      };
+    }
+
+    // Достижения
+    var addAchievement = document.getElementById('addAchievementBtn');
+    if (addAchievement) {
+      addAchievement.onclick = function() {
+        var nick = document.getElementById('aNick').value.trim();
+        var title = document.getElementById('aTitle').value.trim();
+        var date = document.getElementById('aDate').value.trim() || new Date().toLocaleDateString('ru-RU');
+        if (!nick || !title) { alert('Заполните ник и достижение!'); return; }
+        var data = getData(KEYS.achievements);
+        data.push({ nick: nick, title: title, date: date });
+        saveData(KEYS.achievements, data);
+        addLog('Добавлено достижение для '+nick+': '+title);
+        document.getElementById('aNick').value = '';
+        document.getElementById('aTitle').value = '';
+        document.getElementById('aDate').value = '';
+        renderAdminLists();
+        updateMainPage();
+      };
+    }
+  }
+
+  // ===== ЭКСПОРТ/ИМПОРТ =====
+  function setupBackup() {
+    // Экспорт
+    var exportBtn = document.getElementById('exportDataBtn');
+    if (exportBtn) {
+      exportBtn.onclick = function() {
+        var data = {
+          giveaways: getData(KEYS.giveaways),
+          news: getData(KEYS.news),
+          leaders: getData(KEYS.leaders),
+          achievements: getData(KEYS.achievements),
+          description: getData(KEYS.description),
+          unions: getData(KEYS.unions),
+          log: getData(KEYS.log),
+          exportedAt: new Date().toISOString()
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'empire_backup_'+new Date().toISOString().slice(0,10)+'.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        document.getElementById('backupStatus').textContent = '✅ Бэкап скачан!';
+        setTimeout(function() {
+          document.getElementById('backupStatus').textContent = '';
+        }, 3000);
+        addLog('Скачан бэкап данных');
+      };
+    }
+
+    // Импорт
+    var importBtn = document.getElementById('importDataBtn');
+    var fileInput = document.getElementById('importFileInput');
+    if (importBtn && fileInput) {
+      importBtn.onclick = function() {
+        fileInput.click();
+      };
+      fileInput.onchange = function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            var data = JSON.parse(event.target.result);
+            if (data.giveaways) saveData(KEYS.giveaways, data.giveaways);
+            if (data.news) saveData(KEYS.news, data.news);
+            if (data.leaders) saveData(KEYS.leaders, data.leaders);
+            if (data.achievements) saveData(KEYS.achievements, data.achievements);
+            if (data.description) saveData(KEYS.description, data.description);
+            if (data.unions) saveData(KEYS.unions, data.unions);
+            if (data.log) saveData(KEYS.log, data.log);
+            document.getElementById('backupStatus').textContent = '✅ Бэкап загружен! Все данные восстановлены.';
+            addLog('Загружен бэкап данных');
+            renderAdminLists();
+            updateMainPage();
+            renderLogs();
+            setTimeout(function() {
+              document.getElementById('backupStatus').textContent = '';
+            }, 4000);
+          } catch(err) {
+            document.getElementById('backupStatus').textContent = '❌ Ошибка: неверный формат файла';
+            setTimeout(function() {
+              document.getElementById('backupStatus').textContent = '';
+            }, 3000);
+          }
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+      };
+    }
+  }
+
+  // ===== ЛОГ =====
+  function setupLog() {
+    var clearBtn = document.getElementById('clearLogBtn');
+    if (clearBtn) {
+      clearBtn.onclick = function() {
+        if (confirm('Очистить историю действий?')) {
+          saveData(KEYS.log, []);
+          renderLogs();
+          addLog('История очищена');
+        }
+      };
+    }
+  }
+
+  // ===== ВХОД =====
+  function setupLogin() {
+    var loginBtn = document.getElementById('adminLoginBtn');
+    var loginModal = document.getElementById('loginModal');
+    var passwordInput = document.getElementById('adminPasswordInput');
+    var loginSubmit = document.getElementById('adminLoginSubmit');
+    var loginError = document.getElementById('loginError');
+    var adminPanel = document.getElementById('adminPanel');
+    var closeBtn = document.getElementById('adminPanelClose');
+    if (!loginBtn || !loginModal || !adminPanel) return;
+
+    loginBtn.onclick = function() {
+      loginModal.style.display = 'flex';
+      passwordInput.value = '';
+      loginError.style.display = 'none';
+      setTimeout(function(){ passwordInput.focus(); }, 100);
+    };
+
+    function tryLogin() {
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        loginModal.style.display = 'none';
+        adminPanel.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        renderAdminLists();
+        renderLogs();
+        // Загружаем описание в поле
+        var desc = getData(KEYS.description);
+        var descInput = document.getElementById('familyDescInput');
+        if (descInput && desc.length > 0) {
+          descInput.value = desc[0].text;
+        }
+        addLog('Вход в админ-панель');
+      } else {
+        loginError.style.display = 'block';
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    }
+
+    loginSubmit.onclick = tryLogin;
+    passwordInput.onkeydown = function(e) {
+      if (e.key === 'Enter') tryLogin();
+    };
+
+    closeBtn.onclick = function() {
+      adminPanel.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+
+    adminPanel.onclick = function(e) {
+      if (e.target === adminPanel) {
+        adminPanel.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    };
+
+    loginModal.onclick = function(e) {
+      if (e.target === loginModal) {
+        loginModal.style.display = 'none';
+      }
+    };
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (adminPanel.style.display === 'flex') {
+          adminPanel.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+        if (loginModal.style.display === 'flex') {
+          loginModal.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  // ===== ДЕФОЛТНЫЕ ДАННЫЕ =====
+  function initDefaultData() {
+    if (getData(KEYS.description).length === 0) {
+      saveData(KEYS.description, [{ text: '<strong>Empire Colle</strong> — это не просто семья, это <strong>братство</strong>, скреплённое кровью и доверием. Мы — тень на улицах Florida #2, где <strong>сила в единстве</strong>, а <strong>слово — закон</strong>. Наш путь — от мечты к империи.<br/><span style="color:#9400d3; font-weight:500;">«Вместе мы — сила, порознь — ничто».</span>' }]);
+    }
+    if (getData(KEYS.giveaways).length === 0) {
+      saveData(KEYS.giveaways, [{ title: 'Розыгрыш #1', prize: '500.000$', winner: 'Kenji_Rai', endDate: '2026-08-17T19:00' }]);
+    }
+    if (getData(KEYS.news).length === 0) {
+      saveData(KEYS.news, [
+        { text: 'Система повышений убрана — теперь продвижение происходит по-новому' },
+        { text: 'Изменены наименования рангов семьи — обновите свои знания' },
+        { text: 'Мы достигли 80+ участников семьи — спасибо каждому!' }
+      ]);
+    }
+    if (getData(KEYS.leaders).length === 0) {
+      saveData(KEYS.leaders, [
+        { name: 'Anthony_Colle', rank: 'Syndicate Boss', phone: '280-780', vk: 'https://vk.com/anthony_russell' },
+        { name: 'Matthew Colle', rank: 'Underboss', phone: '811-817', vk: 'https://vk.com/yamoto_helllls' },
+        { name: 'Kennedy Colle', rank: 'Vanguard', phone: 'xxx-xxx', vk: 'https://vk.com/id1093907939' }
+      ]);
+    }
+    if (getData(KEYS.achievements).length === 0) {
+      saveData(KEYS.achievements, [
+        { nick: 'Anthony_Colle', title: 'Администратор 1lvl', date: '29.07.2026 - 17.08.2026 (ПСЖ)' },
+        { nick: 'Anthony_Colle', title: 'Русская Мафия (Зам)', date: '23.08.2026 — стоит' }
+      ]);
+    }
+    if (getData(KEYS.unions).length === 0) {
+      saveData(KEYS.unions, [
+        { name: 'Hanow Squad', leader: 'Don Hanow: Hakim Hanow' }
+      ]);
+    }
+  }
+
+  function init() {
+    initDefaultData();
+    setupLogin();
+    setupAddButtons();
+    setupBackup();
+    setupLog();
+    updateMainPage();
+    renderLogs();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>
